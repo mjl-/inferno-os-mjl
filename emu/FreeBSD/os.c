@@ -21,6 +21,7 @@ enum
 	X11STACK=	256*1024
 };
 char *hosttype = "FreeBSD";
+char *hosthome;
 
 extern void unlockandexit(int*);
 extern void executeonnewstack(void*, void (*f)(void*), void*);
@@ -352,6 +353,10 @@ libinit(char *imod)
 	gethostname(sys, sizeof(sys));
 	kstrdup(&ossysname, sys);
 	getnobody();
+
+	hosthome = getenv("HOME");
+	if(hosthome != nil)
+		hosthome = smprint("#U*%q", hosthome);
 
 	if(dflag == 0)
 		termset();

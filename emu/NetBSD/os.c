@@ -21,6 +21,7 @@ enum
 	X11STACK=	256*1024
 };
 char *hosttype = "NetBSD";
+char *hosthome;
 
 static void *stackalloc(Proc *p, void **tos);
 static void stackfreeandexit(void *stack);
@@ -316,6 +317,10 @@ libinit(char *imod)
 		uidnobody = pw->pw_uid;
 		gidnobody = pw->pw_gid;
 	}
+
+	hosthome = getenv("HOME");
+	if(hosthome != nil)
+		hosthome = smprint("#U*%q", hosthome);
 
 	if(dflag == 0)
 		termset();

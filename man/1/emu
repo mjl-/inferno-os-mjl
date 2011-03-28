@@ -260,6 +260,10 @@ name of directory in host file system that acts as Inferno's root directory
 name in host file system of directory where
 .I emu
 was invoked
+.TP
+.B emuroot
+home directory in host file system of user who called
+.IR emu .
 .PD
 .SH EXAMPLE
 To start

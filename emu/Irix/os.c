@@ -37,6 +37,7 @@ enum
 	DELETE	= 0x7F
 };
 char *hosttype = "Irix";
+char *hosthome;
 char *cputype = "mips";
 
 extern int dflag;
@@ -316,6 +317,10 @@ libinit(char *imod)
 
 	gethostname(sys, sizeof(sys));
 	kstrdup(&ossysname, sys);
+
+	hosthome = getenv("HOME");
+	if(hosthome != nil)
+		hosthome = smprint("#U*%q", hosthome);
 
 	if(dflag == 0)
 		termset();

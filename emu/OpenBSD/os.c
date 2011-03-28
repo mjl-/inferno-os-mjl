@@ -24,6 +24,7 @@ enum
 	X11STACK=	256*1024
 };
 char *hosttype = "OpenBSD";
+char *hosthome;
 
 int rfork_thread(int, void *, void (*)(void *), void *);
 
@@ -356,6 +357,10 @@ libinit(char *imod)
 	gethostname(sys, sizeof(sys));
 	kstrdup(&ossysname, sys);
 	getnobody();
+
+	hosthome = getenv("HOME");
+	if(hosthome != nil)
+		hosthome = smprint("#U*%q", hosthome);
 
 	if(dflag == 0)
 		termset();

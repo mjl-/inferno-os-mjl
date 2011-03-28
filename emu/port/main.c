@@ -10,6 +10,7 @@ int		rebootargc = 0;
 char**		rebootargv;
 static	char	*imod = "/dis/emuinit.dis";
 extern	char*	hosttype;
+extern	char*	hosthome;
 char*	tkfont;	/* for libtk/utils.c */
 int	tkstylus;	/* libinterp/tk.c */
 extern	int	mflag;
@@ -319,6 +320,8 @@ emuinit(void *imod)
 			putenvq("emuwdir", wdir, 1);
 		free(wdir);
 	}
+	if(hosthome != nil)
+		ksetenv("emuhome", hosthome, 1);
 
 	kproc("main", disinit, imod, KPDUPFDG|KPDUPPG|KPDUPENVG);
 

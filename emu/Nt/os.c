@@ -39,6 +39,7 @@ HANDLE	ntfd2h(int);
 int	nth2fd(HANDLE);
 void	termrestore(void);
 char *hosttype = "Nt";
+char *hosthome;
 char *cputype = "386";
 
 static void
@@ -374,6 +375,15 @@ libinit(char *imod)
 	kstrdup(&ossysname, sys);
 	if(sflag == 0)
 		SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)TrapHandler);
+
+	hosthome = getenv("UserProfile");
+	if(hosthome != nil) {
+		char *p;
+		hosthome = smprint("#U%q", hosthome);
+		for(p = hosthome; p && *p; p++)
+			if(*p == '\\')
+				*p = '/';
+	}
 
 	path = getenv("PATH");
 	if(path == nil)

@@ -16,6 +16,7 @@ enum
 	DELETE  = 0x7F
 };
 char *hosttype = "Hp";
+char *hosthome;
 
 
 static pthread_key_t	prdakey;
@@ -350,6 +351,10 @@ libinit(char *imod)
 	gethostname(sys, sizeof(sys));
 	kstrdup(&ossysname, sys);
 	getnobody();
+
+	hosthome = getenv("HOME");
+	if(hosthome != nil)
+		hosthome = smprint("#U*%q", hosthome);
 
 	if(dflag == 0)
 		termset();

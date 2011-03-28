@@ -35,6 +35,7 @@ enum
 	X11STACK=	256*1024
 };
 char *hosttype = "Linux";
+char *hosthome;
 
 extern void unlockandexit(int*);
 extern void executeonnewstack(void*, void (*f)(void*), void*);
@@ -329,6 +330,10 @@ libinit(char *imod)
 		uidnobody = pw->pw_uid;
 		gidnobody = pw->pw_gid;
 	}
+
+	hosthome = getenv("HOME");
+	if(hosthome != nil)
+		hosthome = smprint("#U*%q", hosthome);
 
 	if(dflag == 0)
 		termset();

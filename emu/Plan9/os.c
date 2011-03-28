@@ -18,6 +18,7 @@ extern	int	usenewwin;
 int	*ustack;	/* address on unshared stack: see vstack in asm*.s */
 extern	int	dflag;
 char *hosttype = "Plan9";
+char *hosthome;
 char *cputype;
 
 void
@@ -211,6 +212,8 @@ libinit(char *imod)
 		kstrdup(&ossysname, nbuf);
 	if(readfile("/env/cputype", nbuf, sizeof nbuf))
 		kstrdup(&cputype, nbuf);
+	if(readfile("/env/home", nbuf, sizeof nbuf))
+		hosthome = smprint("#U*%q", nbuf);
 
 	/*
 	 * guess at a safe stack for vstack

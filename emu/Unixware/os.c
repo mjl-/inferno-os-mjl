@@ -17,6 +17,7 @@ enum
 	DELETE  = 0x7F
 };
 char *hosttype = "Unixware";
+char *hosthome;
 
 static thread_key_t	prdakey;
 
@@ -291,6 +292,10 @@ libinit(char *imod)
 	gethostname(sys, sizeof(sys));
 	kstrdup(&ossysname, sys);
 	getnobody();
+
+	hosthome = getenv("HOME");
+	if(hosthome != nil)
+		hosthome = smprint("#U*%q", hosthome);
 
 	memset(&act, 0 , sizeof(act));
 	act.sa_handler=trapUSR1;
