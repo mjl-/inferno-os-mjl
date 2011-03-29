@@ -8,7 +8,7 @@
 
 int		rebootargc = 0;
 char**		rebootargv;
-static	char	*imod = "/dis/emuinit.dis";
+extern	char*	imod;
 extern	char*	hosttype;
 extern	char*	hosthome;
 char*	tkfont;	/* for libtk/utils.c */

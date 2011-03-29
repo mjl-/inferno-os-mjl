@@ -2,6 +2,7 @@ $AWK '
 BEGIN{
 		if(ARGC < 2)
 			exit
+		init = "emuinit";
 }
 
 /^$/{
@@ -15,6 +16,9 @@ collect && /^[^	\t]/{
 }
 collect && section ~ "dev"{
 		dev[ndev++] = $1;
+}
+collect && section ~ "init"{
+		init = $1;
 }
 collect && section ~ "ip"{
 		ip[nip++] = $1;
@@ -35,7 +39,7 @@ collect && section ~ "code"{
 		code[ncode++] = $0;
 }
 $0 ~ /^[^ \t]/{
-		if($0 ~ "(code|dev|ip|lib|link|mod|misc|port|root)"){
+		if($0 ~ "(code|dev|init|ip|lib|link|mod|misc|port|root)"){
 			section = $0;
 			collect = 1;
 		}
@@ -94,6 +98,9 @@ END{
 
 		printf "char* conffile = \"%s\";\n", ARGV[1];
 		printf "ulong kerndate = KERNDATE;\n";
+		if(init == "emuinit")
+			init = "/dis/emuinit.dis";
+		printf "char* imod = \"%s\";\n", init;
 
 		exit
 }' $*
