@@ -17,8 +17,6 @@ struct Fsinfo
 };
 #define	FS(c)	((Fsinfo*)((c)->aux))
 
-char	rootdir[MAXROOT] = ROOT;
-
 static void
 fserr(Fsinfo *f)
 {

@@ -135,7 +135,6 @@ modetomask[] =
 };
 
 extern	DWORD	PlatformId;
-	char    rootdir[MAXROOT] = "\\inferno";
 	Rune	rootname[] = L"inferno-server";
 static	Qid	rootqid;
 static	User	*fsnone;

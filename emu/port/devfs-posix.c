@@ -57,8 +57,6 @@ struct User
 	User*	next;
 };
 
-char	rootdir[MAXROOT] = ROOT;
-
 static	User*	uidmap[NID];
 static	User*	gidmap[NID];
 static	QLock	idl;

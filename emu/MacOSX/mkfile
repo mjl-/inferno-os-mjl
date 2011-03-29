@@ -26,7 +26,7 @@ OBJ=\
 
 HFILES=\
 
-CFLAGS='-DROOT="'$ROOT'"'\
+CFLAGS=\
 	'-DOBJTYPE="'$OBJTYPE'"'\
 	-DEMU -I. -I../port\
 	-I$ROOT/$SYSTARG/$OBJTYPE/include\
@@ -47,7 +47,7 @@ default:V:	$O.$CONF
 <../port/portmkfile
 
 $O.$CONF:	$OBJ $CONF.c $CONF.root.h $LIBFILES
-	$CC $CFLAGS '-DKERNDATE='$KERNDATE $CONF.c
+	$CC $CFLAGS '-DKERNDATE='$KERNDATE '-DROOTDIR="'$ROOTDIR'"' $CONF.c
 	$LD $LDFLAGS -o $target $OBJ $CONF.$O $LIBFILES $SYSLIBS
 
 install:V: $O.$CONF

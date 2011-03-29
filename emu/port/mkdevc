@@ -101,6 +101,7 @@ END{
 		if(init == "emuinit")
 			init = "/dis/emuinit.dis";
 		printf "char* imod = \"%s\";\n", init;
+		printf "char rootdir[MAXROOT] = ROOTDIR;\n"
 
 		exit
 }' $*

@@ -1,5 +1,6 @@
 env
 	LDFLAGS=	-subsystem:console -entry:WinMainCRTStartup $LDFLAGS
+	ROOTDIR=/inferno
 
 dev
 	root

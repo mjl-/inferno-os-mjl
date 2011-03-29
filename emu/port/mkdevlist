@@ -5,6 +5,7 @@ BEGIN{
 		var["lib"] = "LIBS=";
 		var["root"] = "ROOTFILES=";
 		infernoroot = ENVIRON["ROOT"];
+		printf "ROOTDIR=$ROOT\n";
 }
 /^$/{		next;
 }
