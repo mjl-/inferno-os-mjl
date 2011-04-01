@@ -26,6 +26,12 @@ Vac: module {
 
 	Dsize:	con 8*1024;
 
+	# DirPlan9, DirNT & DirGen not valid in version >= 9
+	DirPlan9,
+	DirNT,
+	DirQidspace,
+	DirGen: con 1+iota;
+
 	Direntry: adt {
 		version:	int;
 		elem:	string;
@@ -34,6 +40,9 @@ Vac: module {
 		qid:	big;
 		uid, gid, mid:	string;
 		mtime, mcount, ctime, atime, mode, emode: int;
+		qidspace:	int;
+		qidoff:		big;
+		qidmax:		big;
 
 		new:	fn(): ref Direntry;
 		mk:	fn(d: Sys->Dir): ref Direntry;

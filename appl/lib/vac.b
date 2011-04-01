@@ -39,7 +39,7 @@ init()
 
 Direntry.new(): ref Direntry
 {
-	return ref Direntry(9, "", 0, 0, 0, 0, big 0, "", "", "", 0, 0, 0, 0, 0, 0);
+	return ref Direntry(9, "", 0, 0, 0, 0, big 0, "", "", "", 0, 0, 0, 0, 0, 0, 0, big 0, big 0);
 }
 
 Direntry.mk(d: Sys->Dir): ref Direntry
@@ -54,7 +54,7 @@ Direntry.mk(d: Sys->Dir): ref Direntry
 		mode |= Modedir;
 	if(d.mode&sys->DMTMP)
 		mode |= Modetemp;
-	return ref Direntry(9, d.name, 0, 0, 0, 0, d.qid.path, d.uid, d.gid, d.muid, d.mtime, 0, 0, atime, mode, d.mode);
+	return ref Direntry(9, d.name, 0, 0, 0, 0, d.qid.path, d.uid, d.gid, d.muid, d.mtime, 0, 0, atime, mode, d.mode, 0, big 0, big 0);
 }
 
 Direntry.mkdir(de: self ref Direntry): ref Sys->Dir
@@ -86,7 +86,9 @@ Direntry.pack(de: self ref Direntry): array of byte
 		return nil;
 	}
 		
-	length := 4+2+strlen(de.elem)+4+4+4+4+8+strlen(de.uid)+strlen(de.gid)+strlen(de.mid)+4+4+4+4+4; # + qidspace?
+	length := 4+2+strlen(de.elem)+4+4+4+4+8+strlen(de.uid)+strlen(de.gid)+strlen(de.mid)+4+4+4+4+4;
+	if(de.qidspace)
+		length += 1+2+8+8;
 
 	d := array[length] of byte;
 	i := 0;
@@ -108,6 +110,12 @@ Direntry.pack(de: self ref Direntry): array of byte
 	i = p32(d, i, de.ctime);
 	i = p32(d, i, de.atime);
 	i = p32(d, i, de.mode);
+	if(de.qidspace) {
+		d[i++] = byte DirQidspace;
+		i = p16(d, i, 16);
+		i = p64(d, i, de.qidoff);
+		i = p64(d, i, de.qidmax);
+	}
 	if(i != len d) {
 		sys->werrstr(sprint("bad length for direntry (expected %d, have %d)", len d, i));
 		return nil;
@@ -161,8 +169,24 @@ Direntry.unpack(d: array of byte): ref Direntry
 			de.emode |= sys->DMDIR;
 		if(de.mode&Modetemp)
 			de.emode |= sys->DMTMP;
-		if(de.version == 9)
-			; # xxx handle qid space?, can be in here
+		while(i < len d) {
+			t := int d[i++];
+			n: int;
+			(n, i) = eg16(d, i);
+			case t {
+			DirQidspace =>
+				if(n != 16) {
+					sys->werrstr(sprint("invalid qidspace length %d", n));
+					return nil;
+				}
+				de.qidspace = 1;
+				(de.qidoff, i) = eg64(d, i);
+				(de.qidmax, i) = eg64(d, i);
+			* =>
+				# ignore other optional fields
+				i += n;
+			}
+		}
 		return de;
 	} exception e {
 	"too small:*" =>
@@ -669,6 +693,8 @@ if(dflag) say(sprint("vfreadentry: reading entry=%d", entry));
 		return nil;
 	}
 	e := Entry.unpack(ebuf);
+	if(e == nil)
+		return nil;
 	if(~e.flags&venti->Entryactive) {
 		sys->werrstr("entry not active");
 		return nil;
@@ -712,6 +738,8 @@ readdirentry(buf: array of byte, i: int, allowroot: int): ref Direntry
 		return nil;
 	o := me.offset;
 	de := Direntry.unpack(buf[o:o+me.size]);
+	if(de == nil)
+		return nil;
 	if(badelem(de.elem) && !(allowroot && de.elem == "/")) {
 		sys->werrstr(sprint("bad direntry: %s", de.elem));
 		return nil;

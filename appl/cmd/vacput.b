@@ -37,6 +37,8 @@ blocksize := vac->Dsize;
 uid: string;
 gid: string;
 
+pathgen: big;
+
 bout: ref Iobuf;
 session: ref Session;
 name := "vac";
@@ -116,6 +118,7 @@ init(nil: ref Draw->Context, args: list of string)
 		topde.mode = 8r777|Vac->Modedir;
 		topde.mtime = topde.atime = 0;
 	}
+	topde.qid = pathgen++;
 	if(uid != nil)
 		topde.uid = uid;
 	if(gid != nil)
@@ -137,6 +140,9 @@ init(nil: ref Draw->Context, args: list of string)
 	e1 := ms.finish();
 	if(e1 == nil)
 		fail(sprint("writing top meta entry: %r"));
+	topde.qidspace = 1;
+	topde.qidoff = big 0;
+	topde.qidmax = pathgen;
 	s2 := MSink.new(session, blocksize);
 	if(s2.add(topde) < 0)
 		fail(sprint("adding direntry for top entries: %r"));
@@ -210,6 +216,7 @@ writepath(path: string, s: ref Sink, ms: ref MSink)
 
 	e, me: ref Entry;
 	de: ref Direntry;
+	qid := pathgen++;
 	if(dir.mode & sys->DMDIR) {
 		ns := Sink.new(session, blocksize);
 		nms := MSink.new(session, blocksize);
@@ -242,6 +249,7 @@ writepath(path: string, s: ref Sink, ms: ref MSink)
 	"." =>	dir.name = "dot";
 	}
 	de = Direntry.mk(dir);
+	de.qid = qid;
 	if(uid != nil)
 		de.uid = uid;
 	if(gid != nil)
