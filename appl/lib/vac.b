@@ -1,15 +1,14 @@
 implement Vac;
 
 include "sys.m";
+	sys: Sys;
+	sprint: import sys;
 include "venti.m";
+	venti: Venti;
+	Roottype, Dirtype, Pointertype0, Datatype: import venti;
+	Score, Session, Scoresize: import venti;
 include "vac.m";
 
-sys: Sys;
-venti: Venti;
-
-werrstr, sprint, fprint, fildes: import sys;
-Roottype, Dirtype, Pointertype0, Datatype: import venti;
-Score, Session, Scoresize: import venti;
 
 dflag = 0;
 
@@ -151,7 +150,7 @@ Entry.pack(e: self ref Entry): array of byte
 	i = p48(d, i, e.size);
 	i = pscore(d, i, e.score);
 	if(i != len d) {
-		werrstr(sprint("bad length, have %d, want %d", i, len d));
+		sys->werrstr(sprint("bad length, have %d, want %d", i, len d));
 		return nil;
 	}
 	return d;
@@ -257,7 +256,7 @@ Direntry.pack(de: self ref Direntry): array of byte
 	i = p32(d, i, de.atime);
 	i = p32(d, i, de.mode);
 	if(i != len d) {
-		werrstr(sprint("bad length for direntry (expected %d, have %d)", len d, i));
+		sys->werrstr(sprint("bad length for direntry (expected %d, have %d)", len d, i));
 		return nil;
 	}
 	return d;
@@ -271,12 +270,12 @@ Direntry.unpack(d: array of byte): ref Direntry
 		magic: int;
 		(magic, i) = eg32(d, i);
 		if(magic != Direntrymagic) {
-			werrstr(sprint("bad magic (%x, want %x)", magic, Direntrymagic));
+			sys->werrstr(sprint("bad magic (%x, want %x)", magic, Direntrymagic));
 			return nil;
 		}
 		(de.version, i) = eg16(d, i);
 		if(de.version != 8 && de.version != 9) {
-			werrstr(sprint("bad version (%d)", de.version));
+			sys->werrstr(sprint("bad version (%d)", de.version));
 			return nil;
 		}
 		(de.elem, i) = egstring(d, i);
@@ -314,7 +313,7 @@ Direntry.unpack(d: array of byte): ref Direntry
 		return de;
 	} exception e {
 	"too small:*" =>
-		werrstr("direntry "+e);
+		sys->werrstr("direntry "+e);
 		return nil;
 	* =>
 		raise e;
@@ -340,13 +339,13 @@ Metablock.pack(mb: self ref Metablock, d: array of byte)
 Metablock.unpack(d: array of byte): ref Metablock
 {
 	if(len d < Metablocksize) {
-		werrstr(sprint("bad length for metablock (%d, want %d)", len d, Metablocksize));
+		sys->werrstr(sprint("bad length for metablock (%d, want %d)", len d, Metablocksize));
 		return nil;
 	}
 	i := 0;
 	magic := g32(d, i);
 	if(magic != Metablockmagic && magic != Metablockmagic+1) {
-		werrstr(sprint("bad magic for metablock (%x, need %x)", magic, Metablockmagic));
+		sys->werrstr(sprint("bad magic for metablock (%x, need %x)", magic, Metablockmagic));
 		return nil;
 	}
 	i += BIT32SZ;
@@ -361,7 +360,7 @@ Metablock.unpack(d: array of byte): ref Metablock
 	mb.nindex = g16(d, i);
 	i += BIT16SZ;
 	if(mb.nindex == 0) {
-		werrstr("bad metablock, nindex=0");
+		sys->werrstr("bad metablock, nindex=0");
 		return nil;
 	}
 	return mb;
@@ -378,7 +377,7 @@ Metaentry.unpack(d: array of byte, i: int): ref Metaentry
 {
 	o := Metablocksize+i*Metaentrysize;
 	if(o+Metaentrysize > len d) {
-		werrstr(sprint("meta entry lies outside meta block, i=%d", i));
+		sys->werrstr(sprint("meta entry lies outside meta block, i=%d", i));
 		return nil;
 	}
 
@@ -388,7 +387,7 @@ Metaentry.unpack(d: array of byte, i: int): ref Metaentry
 	me.size = g16(d, o);
 	o += BIT16SZ;
 	if(me.offset+me.size > len d) {
-		werrstr(sprint("meta entry points outside meta block, i=%d", i));
+		sys->werrstr(sprint("meta entry points outside meta block, i=%d", i));
 		return nil;
 	}
 	return me;
@@ -456,7 +455,7 @@ fflush(f: ref File, last: int): (int, ref Entry)
 		}
 		f.p[i+1].add(score);
 	}
-	werrstr("internal error in fflush");
+	sys->werrstr("internal error in fflush");
 	return (-1, nil);
 }
 
@@ -601,7 +600,7 @@ MSink.add(m: self ref MSink, de: ref Direntry): int
 	d := de.pack();
 	if(d == nil)
 		return -1;
-say(sprint("msink: adding direntry, length %d", len d));
+if(dflag) say(sprint("msink: adding direntry, length %d", len d));
 	if(Metablocksize+len m.l*Metaentrysize+m.nde + Metaentrysize+len d > len m.de)
 		if(mflush(m, 0) < 0)
 			return -1;
@@ -714,11 +713,11 @@ Vacfile.read(v: self ref Vacfile, d: array of byte, n: int): int
 Vacfile.pread(v: self ref Vacfile, d: array of byte, n: int, offset: big): int
 {
 	dsize := v.s.dsize;
-say(sprint("vf.preadn, len d %d, n %d, offset %bd", len d, n, offset));
+if(dflag) say(sprint("vf.preadn, len d %d, n %d, offset %bd", len d, n, offset));
 	have := v.s.get(big (offset/big dsize), buf := array[dsize] of byte);
 	if(have <= 0)
 		return have;
-say(sprint("vacfile.pread: have=%d dsize=%d", have, dsize));
+if(dflag) say(sprint("vacfile.pread: have=%d dsize=%d", have, dsize));
 	o := int (offset % big dsize);
 	have -= o;
 	if(have > n)
@@ -752,7 +751,7 @@ mecmp(d: array of byte, i: int, elem: string, fromfossil: int): (int, int)
 	n := g16(d, o);
 	o += BIT16SZ;
 	if(o+n > len d) {
-		werrstr("bad elem in direntry");
+		sys->werrstr("bad elem in direntry");
 		return (0, 1);
 	}
 	return (elemcmp(d[o:o+n], array of byte elem, fromfossil), 0);
@@ -801,54 +800,54 @@ Vacdir.walk(v: self ref Vacdir, elem: string): ref Direntry
 			return de;
 		i++;
 	}
-	werrstr(sprint("no such file or directory"));
+	sys->werrstr(sprint("no such file or directory"));
 	return nil;
 }
 
 vfreadentry(vf: ref Vacfile, entry: int): ref Entry
 {
-say(sprint("vfreadentry: reading entry=%d", entry));
+if(dflag) say(sprint("vfreadentry: reading entry=%d", entry));
 	ebuf := array[Entrysize] of byte;
 	n := vf.pread(ebuf, len ebuf, big entry*big Entrysize);
 	if(n < 0)
 		return nil;
 	if(n != len ebuf) {
-		werrstr(sprint("bad archive, entry=%d not present (read %d, wanted %d)", entry, n, len ebuf));
+		sys->werrstr(sprint("bad archive, entry=%d not present (read %d, wanted %d)", entry, n, len ebuf));
 		return nil;
 	}
 	e := Entry.unpack(ebuf);
 	if(~e.flags&Entryactive) {
-		werrstr("entry not active");
+		sys->werrstr("entry not active");
 		return nil;
 	}
 	# p9p writes archives with Entrylocal set?
 	if(0 && e.flags&Entrylocal) {
-		werrstr("entry is local");
+		sys->werrstr("entry is local");
 		return nil;
 	}
-say(sprint("vreadentry: have entry, score=%s", e.score.text()));
+if(dflag) say(sprint("vreadentry: have entry, score=%s", e.score.text()));
 	return e;
 }
 
 Vacdir.open(vd: self ref Vacdir, de: ref Direntry): (ref Entry, ref Entry)
 {
-say(sprint("vacdir.open: opening entry=%d", de.entry));
+if(dflag) say(sprint("vacdir.open: opening entry=%d", de.entry));
 	e := vfreadentry(vd.vf, de.entry);
 	if(e == nil)
 		return (nil, nil);
 	isdir1 := de.mode & Modedir;
 	isdir2 := e.flags & Entrydir;
 	if(isdir1 && !isdir2 || !isdir1 && isdir2) {
-		werrstr("direntry directory bit does not match entry directory bit");
+		sys->werrstr("direntry directory bit does not match entry directory bit");
 		return (nil, nil);
 	}
-say(sprint("vacdir.open: have entry, score=%s size=%bd", e.score.text(), e.size));
+if(dflag) say(sprint("vacdir.open: have entry, score=%s size=%bd", e.score.text(), e.size));
 	me: ref Entry;
 	if(de.mode&Modedir) {
 		me = vfreadentry(vd.vf, de.mentry);
 		if(me == nil)
 			return (nil, nil);
-say(sprint("vacdir.open: have mentry, score=%s size=%bd", me.score.text(), e.size));
+if(dflag) say(sprint("vacdir.open: have mentry, score=%s size=%bd", me.score.text(), e.size));
 	}
 	return (e, me);
 }
@@ -861,7 +860,7 @@ readdirentry(buf: array of byte, i: int, allowroot: int): ref Direntry
 	o := me.offset;
 	de := Direntry.unpack(buf[o:o+me.size]);
 	if(badelem(de.elem) && !(allowroot && de.elem == "/")) {
-		werrstr(sprint("bad direntry: %s", de.elem));
+		sys->werrstr(sprint("bad direntry: %s", de.elem));
 		return nil;
 	}
 	return de;
@@ -882,12 +881,12 @@ badelem(elem: string): int
 
 vdreaddir(vd: ref Vacdir, allowroot: int): (int, ref Direntry)
 {
-say(sprint("vdreaddir: ms.e.size=%bd vd.p=%bd vd.i=%d", vd.ms.e.size, vd.p, vd.i));
+if(dflag) say(sprint("vdreaddir: ms.e.size=%bd vd.p=%bd vd.i=%d", vd.ms.e.size, vd.p, vd.i));
 	dsize := vd.ms.dsize;
 	n := vd.ms.get(vd.p, buf := array[dsize] of byte);
 	if(n <= 0)
 		return (n, nil);
-say(sprint("vdreaddir: have buf, length=%d e.size=%bd", n, vd.ms.e.size));
+if(dflag) say(sprint("vdreaddir: have buf, length=%d e.size=%bd", n, vd.ms.e.size));
 	mb := Metablock.unpack(buf);
 	if(mb == nil)
 		return (-1, nil);
@@ -899,7 +898,7 @@ say(sprint("vdreaddir: have buf, length=%d e.size=%bd", n, vd.ms.e.size));
 		vd.p++;
 		vd.i = 0;
 	}
-say("vdreaddir: have entry");
+if(dflag) say("vdreaddir: have entry");
 	return (1, de);
 }
 
@@ -924,14 +923,14 @@ vdroot(session: ref Session, score: Venti->Score): (ref Vacdir, ref Direntry, st
 	r := Root.unpack(d);
 	if(r == nil)
 		return (nil, nil, sprint("bad vac root block: %r"));
-	say("have root");
+if(dflag) say("have root");
 	topscore := r.score;
 
 	d = session.read(topscore, Dirtype, 3*Entrysize);
 	if(d == nil)
 		return (nil, nil, sprint("reading rootdir score: %r"));
 	if(len d != 3*Entrysize) {
-		say("top entries not in directory of 3 elements, assuming it's from fossil");
+if(dflag) say("top entries not in directory of 3 elements, assuming it's from fossil");
 		if(len d % Entrysize != 0 && len d == 2*Entrysize != 0)	# what's in the second 40 bytes?  looks like 2nd 20 bytes of it is zero score
 			return (nil, nil, sprint("bad fossil rootdir, have %d bytes, need %d or %d", len d, Entrysize, 2*Entrysize));
 		e := Entry.unpack(d[:Entrysize]);
@@ -941,9 +940,9 @@ vdroot(session: ref Session, score: Venti->Score): (ref Vacdir, ref Direntry, st
 		d = session.read(topscore, Dirtype, 3*Entrysize);
 		if(d == nil)
 			return (nil, nil, sprint("reading fossil rootdir block: %r"));
-		say("have fossil top entries");
+if(dflag) say("have fossil top entries");
 	}
-	say("have top entries");
+if(dflag) say("have top entries");
 
 	e := array[3] of ref Entry;
 	j := 0;
@@ -953,14 +952,14 @@ vdroot(session: ref Session, score: Venti->Score): (ref Vacdir, ref Direntry, st
 			return (nil, nil, sprint("reading root entry %d: %r", j));
 		j++;
 	}
-	say("top entries unpacked");
+if(dflag) say("top entries unpacked");
 
 	mroot := Vacdir.mk(nil, Source.new(session, e[2]));
 	(ok, de) := vdreaddir(mroot, 1);
 	if(ok <= 0)
 		return (nil, nil, sprint("reading root meta entry: %r"));
 
-say(sprint("vdroot: new score=%s", score.text()));
+if(dflag) say(sprint("vdroot: new score=%s", score.text()));
 	return (Vacdir.new(session, e[0], e[1]), de, nil);
 }
 
@@ -1101,5 +1100,5 @@ eg64(f: array of byte, i: int): (big, int)
 say(s: string)
 {
 	if(dflag)
-		fprint(fildes(2), "%s\n", s);
+		sys->fprint(sys->fildes(2), "%s\n", s);
 }
