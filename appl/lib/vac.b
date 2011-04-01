@@ -12,7 +12,6 @@ include "vac.m";
 
 dflag = 0;
 
-# from venti.b
 BIT8SZ:	con 1;
 BIT16SZ:        con 2;
 BIT32SZ:        con 4;
@@ -31,49 +30,12 @@ blankdirentry: Direntry;
 blankmetablock: Metablock;
 blankmetaentry: Metaentry;
 
-
 init()
 {
 	sys = load Sys Sys->PATH;
 	venti = load Venti Venti->PATH;
 	venti->init();
 }
-
-pstring(a: array of byte, o: int, s: string): int
-{
-	sa := array of byte s;	# could do conversion ourselves
-	n := len sa;
-	a[o] = byte (n >> 8);
-	a[o+1] = byte n;
-	a[o+2:] = sa;
-	return o+BIT16SZ+n;
-}
-
-gstring(a: array of byte, o: int): (string, int)
-{
-	if(o < 0 || o+BIT16SZ > len a)
-		return (nil, -1);
-	l := (int a[o] << 8) | int a[o+1];
-	if(l > Maxstringsize)
-		return (nil, -1);
-	o += BIT16SZ;
-	e := o+l;
-	if(e > len a)
-		return (nil, -1);
-	return (string a[o:e], e);
-}
-
-gtstring(a: array of byte, o: int, n: int): string
-{
-	e := o + n;
-	if(e > len a)
-		return nil;
-	for(i := o; i < e; i++)
-		if(a[i] == byte 0)
-			break;
-	return string a[o:i];
-}
-
 
 Direntry.new(): ref Direntry
 {
@@ -119,7 +81,11 @@ strlen(s: string): int
 
 Direntry.pack(de: self ref Direntry): array of byte
 {
-	# assume version 9
+	if(de.version != 9) {
+		sys->werrstr("only version 9 supported");
+		return nil;
+	}
+		
 	length := 4+2+strlen(de.elem)+4+4+4+4+8+strlen(de.uid)+strlen(de.gid)+strlen(de.mid)+4+4+4+4+4; # + qidspace?
 
 	d := array[length] of byte;
@@ -810,14 +776,12 @@ vdroot(session: ref Session, score: Venti->Score): (ref Vacdir, ref Direntry, st
 	r := Root.unpack(d);
 	if(r == nil)
 		return (nil, nil, sprint("bad vac root block: %r"));
-if(dflag) say("have root");
 	topscore := r.score;
 
 	d = session.read(topscore, Dirtype, 3*Entrysize);
 	if(d == nil)
 		return (nil, nil, sprint("reading rootdir score: %r"));
 	if(len d != 3*Entrysize) {
-if(dflag) say("top entries not in directory of 3 elements, assuming it's from fossil");
 		if(len d % Entrysize != 0 && len d == 2*Entrysize != 0)	# what's in the second 40 bytes?  looks like 2nd 20 bytes of it is zero score
 			return (nil, nil, sprint("bad fossil rootdir, have %d bytes, need %d or %d", len d, Entrysize, 2*Entrysize));
 		e := Entry.unpack(d[:Entrysize]);
@@ -827,9 +791,7 @@ if(dflag) say("top entries not in directory of 3 elements, assuming it's from fo
 		d = session.read(topscore, Dirtype, 3*Entrysize);
 		if(d == nil)
 			return (nil, nil, sprint("reading fossil rootdir block: %r"));
-if(dflag) say("have fossil top entries");
 	}
-if(dflag) say("have top entries");
 
 	e := array[3] of ref Entry;
 	j := 0;
@@ -846,7 +808,6 @@ if(dflag) say("top entries unpacked");
 	if(ok <= 0)
 		return (nil, nil, sprint("reading root meta entry: %r"));
 
-if(dflag) say(sprint("vdroot: new score=%s", score.text()));
 	return (Vacdir.new(session, e[0], e[1]), de, nil);
 }
 
@@ -858,6 +819,32 @@ checksize(n: int): int
 		return 0;
 	}
 	return 1;
+}
+
+
+gstring(a: array of byte, o: int): (string, int)
+{
+	if(o < 0 || o+BIT16SZ > len a)
+		return (nil, -1);
+	l := (int a[o] << 8) | int a[o+1];
+	if(l > Maxstringsize)
+		return (nil, -1);
+	o += BIT16SZ;
+	e := o+l;
+	if(e > len a)
+		return (nil, -1);
+	return (string a[o:e], e);
+}
+
+gtstring(a: array of byte, o: int, n: int): string
+{
+	e := o + n;
+	if(e > len a)
+		return nil;
+	for(i := o; i < e; i++)
+		if(a[i] == byte 0)
+			break;
+	return string a[o:i];
 }
 
 gscore(f: array of byte, i: int): Score
@@ -917,6 +904,16 @@ p64(d: array of byte, i: int, v: big): int
 	p32(d, i+0, int (v>>32));
 	p32(d, i+0, int v);
 	return i+BIT64SZ;
+}
+
+pstring(a: array of byte, o: int, s: string): int
+{
+	sa := array of byte s;	# could do conversion ourselves
+	n := len sa;
+	a[o] = byte (n >> 8);
+	a[o+1] = byte n;
+	a[o+2:] = sa;
+	return o+BIT16SZ+n;
 }
 
 ptstring(d: array of byte, i: int, s: string, l: int): int
