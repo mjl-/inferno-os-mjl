@@ -866,16 +866,12 @@ g32(f: array of byte, i: int): int
 
 g48(f: array of byte, i: int): big
 {
-	b1 := (((((int f[i+0] << 8) | int f[i+1]) << 8) | int f[i+2]) << 8) | int f[i+3];
-	b0 := (int f[i+4] << 8) | int f[i+5];
-	return (big b1 << 16) | big b0;
+	return big g32(f, i)<<16 | big g16(f, i+4);
 }
 
 g64(f: array of byte, i: int): big
 {
-	b0 := (((((int f[i+3] << 8) | int f[i+2]) << 8) | int f[i+1]) << 8) | int f[i];
-	b1 := (((((int f[i+7] << 8) | int f[i+6]) << 8) | int f[i+5]) << 8) | int f[i+4];
-	return (big b1 << 32) | (big b0 & 16rFFFFFFFF);
+	return big g32(f, i)<<32 | big g32(f, i+4);
 }
 
 p16(d: array of byte, i: int, v: int): int
@@ -902,7 +898,7 @@ p48(d: array of byte, i: int, v: big): int
 p64(d: array of byte, i: int, v: big): int
 {
 	p32(d, i+0, int (v>>32));
-	p32(d, i+0, int v);
+	p32(d, i+4, int v);
 	return i+BIT64SZ;
 }
 
