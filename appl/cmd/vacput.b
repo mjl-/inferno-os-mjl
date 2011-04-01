@@ -34,6 +34,8 @@ iflag: int;
 vflag: int;
 xflag: int;
 blocksize := vac->Dsize;
+uid: string;
+gid: string;
 
 bout: ref Iobuf;
 session: ref Session;
@@ -58,7 +60,7 @@ init(nil: ref Draw->Context, args: list of string)
 	vac->init();
 
 	arg->init(args);
-	arg->setusage(arg->progname()+" [-divx] [-a addr] [-b blocksize] [-n name] path ...");
+	arg->setusage(arg->progname()+" [-dv] [-i | -x] [-a addr] [-b blocksize] [-n name] [-u uid] [-g gid] path ...");
 	while((c := arg->opt()) != 0)
 		case c {
 		'a' =>	addr = arg->earg();
@@ -68,6 +70,8 @@ init(nil: ref Draw->Context, args: list of string)
 		'i' =>	iflag++;
 		'v' =>	vflag++;
 		'x' =>	xflag++;
+		'g' =>	gid = arg->earg();
+		'u' =>	uid = arg->earg();
 		* =>	arg->usage();
 		}
 	args = arg->argv();
@@ -112,6 +116,10 @@ init(nil: ref Draw->Context, args: list of string)
 		topde.mode = 8r777|Vac->Modedir;
 		topde.mtime = topde.atime = 0;
 	}
+	if(uid != nil)
+		topde.uid = uid;
+	if(gid != nil)
+		topde.gid = gid;
 	topde.ctime = dt->now();
 
 	s := Sink.new(session, blocksize);
@@ -244,6 +252,10 @@ say("writepath: wrote path, "+e.score.text());
 	"." =>	dir.name = "dot";
 	}
 	de = Direntry.mk(dir);
+	if(uid != nil)
+		de.uid = uid;
+	if(gid != nil)
+		de.gid = gid;
 say("writepath: have direntry");
 
 	i := s.add(e);
