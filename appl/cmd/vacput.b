@@ -8,16 +8,22 @@ include "bufio.m";
 	bufio: Bufio;
 	Iobuf: import bufio;
 include "arg.m";
+include "dial.m";
 include "string.m";
+include "tables.m";
 include "venti.m";
 include "vac.m";
 
 daytime: Daytime;
+dial: Dial;
 str: String;
+tables: Tables;
 venti: Venti;
 vac: Vac;
+bout: ref Iobuf;
 
 print, sprint, fprint, fildes: import sys;
+Strhash: import tables;
 Score, Session: import venti;
 Roottype, Dirtype, Pointertype0, Datatype: import venti;
 Root, Entry, Direntry, Metablock, Metaentry, Entrysize, File, Sink, MSink: import vac;
@@ -26,12 +32,16 @@ Vacput: module {
 	init:	fn(nil: ref Draw->Context, args: list of string);
 };
 
-addr := "net!$venti!venti";
+addr := "$venti";
 dflag := 0;
+iflag := 0;
 vflag := 0;
+xflag := 0;
 blocksize := vac->Dsize;
 session: ref Session;
 name := "vac";
+itab,
+xtab: ref Strhash[string]; # include/exclude paths
 
 init(nil: ref Draw->Context, args: list of string)
 {
@@ -39,7 +49,9 @@ init(nil: ref Draw->Context, args: list of string)
 	daytime = load Daytime Daytime->PATH;
 	bufio = load Bufio Bufio->PATH;
 	arg := load Arg Arg->PATH;
+	dial = load Dial Dial->PATH;
 	str = load String String->PATH;
+	tables = load Tables Tables->PATH;
 	venti = load Venti Venti->PATH;
 	vac = load Vac Vac->PATH;
 	if(venti == nil || vac == nil)
@@ -48,7 +60,7 @@ init(nil: ref Draw->Context, args: list of string)
 	vac->init();
 
 	arg->init(args);
-	arg->setusage(sprint("%s [-dtv] [-a addr] [-b blocksize] [-n name] path ...", arg->progname()));
+	arg->setusage(sprint("%s [-divx] [-a addr] [-b blocksize] [-n name] path ...", arg->progname()));
 	while((c := arg->opt()) != 0)
 		case c {
 		'a' =>	addr = arg->earg();
@@ -56,27 +68,45 @@ init(nil: ref Draw->Context, args: list of string)
 		'n' =>	name = arg->earg();
 		'd' =>	dflag++;
 			vac->dflag++;
+		'i' =>	iflag++;
 		'v' =>	vflag++;
+		'x' =>	xflag++;
 		* =>	warn(sprint("bad option: -%c", c));
 			arg->usage();
 		}
 	args = arg->argv();
 	if(len args == 0)
 		arg->usage();
+	if(iflag && xflag) {
+		warn("cannot have both -i and -x");
+		arg->usage();
+	}
 
-	(cok, conn) := sys->dial(addr, nil);
-	if(cok < 0)
+	if(vflag)
+		bout = bufio->fopen(sys->fildes(1), bufio->OWRITE);
+
+	if(iflag || xflag) {
+		t := readpaths();
+		if(iflag)
+			itab = t;
+		else
+			xtab = t;
+	}
+
+	addr = dial->netmkaddr(addr, "net", "venti");
+	cc := dial->dial(addr, nil);
+	if(cc == nil)
 		error(sprint("dialing %s: %r", addr));
 	say("have connection");
 
-	fd := conn.dfd;
+	fd := cc.dfd;
 	session = Session.new(fd);
 	if(session == nil)
 		error(sprint("handshake: %r"));
 	say("have handshake");
 
 	topde: ref Direntry;
-	if(len args == 1 && ((nil, d) := sys->stat(hd args)).t0 == 0 && d.mode&Sys->DMDIR) {
+	if(len args == 1 && ((nil, d) := sys->stat(hd args)).t0 == 0 && (d.mode&Sys->DMDIR)) {
 		topde = Direntry.mk(d);
 		topde.elem = name;
 	} else {
@@ -93,6 +123,9 @@ init(nil: ref Draw->Context, args: list of string)
 	for(; args != nil; args = tl args)
 		writepath(hd args, s, ms);
 	say("tree written");
+
+	if(vflag && bout.flush() == bufio->ERROR)
+		error(sprint("write stdout: %r"));
 
 	e0 := s.finish();
 	if(e0 == nil)
@@ -129,10 +162,38 @@ init(nil: ref Draw->Context, args: list of string)
 		error(sprint("syncing server: %r"));
 }
 
+readpaths(): ref Strhash[string]
+{
+	t := Strhash[string].new(199, nil);
+	b := bufio->fopen(sys->fildes(0), bufio->OREAD);
+	if(b == nil)
+		error(sprint("fopen: %r"));
+	for(;;) {
+		s := b.gets('\n');
+		if(s == nil)
+			break;
+		if(s[len s-1] == '\n')
+			s = s[:len s-1];
+		t.add(s, s);
+	}
+	return t;
+}
+
+usepath(p: string): int
+{
+	if(itab != nil)
+		return itab.find(p) != nil;
+	if(xtab != nil)
+		return xtab.find(p) == nil;
+	return 1;
+}
+
 writepath(path: string, s: ref Sink, ms: ref MSink)
 {
-	if(vflag)
-		print("%s\n", path);
+	if(!usepath(path))
+		return;
+	if(vflag && bout.puts(path+"\n") == bufio->ERROR)
+		error(sprint("write stdout: %r"));
 say("writepath "+path);
 	fd := sys->open(path, sys->OREAD);
 	if(fd == nil)
@@ -182,6 +243,10 @@ say("writepath: file is normale file");
 	}
 say("writepath: wrote path, "+e.score.text());
 
+	case dir.name {
+	"/" =>	dir.name = "root";
+	"." =>	dir.name = "dot";
+	}
 	de = Direntry.mk(dir);
 say("writepath: have direntry");
 
