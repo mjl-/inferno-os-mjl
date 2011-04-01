@@ -1,0 +1,142 @@
+env
+	ROOTDIR=/
+
+dev
+	root
+	cons
+	env
+	mnt
+	pipe
+	prog
+	prof
+	srv
+	dup
+	ssl
+	cap
+	fs
+	cmd	cmd
+	indir
+
+	draw	win-x11a
+	pointer
+	snarf
+
+	ip	ipif6-posix ipaux
+	eia
+#	audio	audio-oss
+	mem
+
+lib
+	interp
+	tk
+	freetype
+	math
+	draw
+
+	memlayer
+	memdraw
+	keyring
+	sec
+	mp
+
+	9
+
+link
+
+mod
+	sys
+	draw
+
+	tk
+	math
+	srv	srv
+	keyring
+	crypt
+	ipints
+	loader
+	freetype
+
+port
+	alloc
+	cache
+	chan
+	dev
+	devtab
+
+	dial
+	dis
+	discall
+	env
+	error
+	errstr
+	exception
+	exportfs
+	inferno
+	latin1
+	main
+	parse
+	pgrp
+	print
+	proc
+	qio
+	random
+	sysfile
+	uqid
+
+code
+
+init
+	/vacinit/dis/vacinit.dis
+
+root
+	/dev	/
+	/fd	/
+	/prog	/
+	/prof	/
+	/net	/
+	/net.alt	/
+	/chan	/
+	/nvfs	/
+	/env	/
+	/vacinit	/
+	/vacinit/lib	/
+	/vacinit/lib/vacinit	/
+#	/vacinit/lib/vacinit/builtin	/lib/vacinit/builtin
+	/vacinit/dis	/
+	/vacinit/dis/lib	/
+	/vacinit/dis/ndb	/
+
+	/vacinit/dis/tventi.dis		/dis/tventi.dis
+	/vacinit/dis/vacinit.dis	/dis/vacinit.dis
+	/vacinit/dis/vacsrv.dis		/dis/vacsrv.dis
+	/vacinit/dis/xventi.dis		/dis/xventi.dis
+
+	/vacinit/dis/ndb/cs.dis		/dis/ndb/cs.dis
+
+	/vacinit/dis/lib/arg.dis		/dis/lib/arg.dis
+	/vacinit/dis/lib/attrdb.dis		/dis/lib/attrdb.dis
+	/vacinit/dis/lib/bufio.dis		/dis/lib/bufio.dis
+	/vacinit/dis/lib/daytime.dis		/dis/lib/daytime.dis
+	/vacinit/dis/lib/dial.dis		/dis/lib/dial.dis
+	/vacinit/dis/lib/env.dis		/dis/lib/env.dis
+	/vacinit/dis/lib/ip.dis			/dis/lib/ip.dis
+	/vacinit/dis/lib/ipattr.dis		/dis/lib/ipattr.dis
+	/vacinit/dis/lib/readdir.dis		/dis/lib/readdir.dis
+	/vacinit/dis/lib/string.dis		/dis/lib/string.dis
+	/vacinit/dis/lib/styx.dis		/dis/lib/styx.dis
+	/vacinit/dis/lib/tables.dis		/dis/lib/tables.dis
+	/vacinit/dis/lib/titlebar.dis		/dis/lib/titlebar.dis
+	/vacinit/dis/lib/tkclient.dis		/dis/lib/tkclient.dis
+	/vacinit/dis/lib/vac.dis		/dis/lib/vac.dis
+	/vacinit/dis/lib/venti.dis		/dis/lib/venti.dis
+	/vacinit/dis/lib/wmlib.dis		/dis/lib/wmlib.dis
+	/vacinit/dis/lib/wmsrv.dis		/dis/lib/wmsrv.dis
+
+#	/dis
+#	/n
+#	/icons
+#	/osinit.dis
+#	/dis/emuinit.dis
+#	/dis/lib/auth.dis
+#	/dis/lib/ssl.dis
+#	/n/local /
