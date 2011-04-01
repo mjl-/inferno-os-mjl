@@ -137,7 +137,6 @@ init(nil: ref Draw->Context, args: list of string)
 	e1 := ms.finish();
 	if(e1 == nil)
 		fail(sprint("writing top meta entry: %r"));
-	say(sprint("top entries written (%s, %s)", e0.score.text(), e1.score.text()));
 	s2 := MSink.new(session, blocksize);
 	if(s2.add(topde) < 0)
 		fail(sprint("adding direntry for top entries: %r"));
@@ -151,7 +150,6 @@ init(nil: ref Draw->Context, args: list of string)
 	(tok, tscore) := session.write(venti->Dirtype, td);
 	if(tok < 0)
 		fail(sprint("writing top-level entries: %r"));
-	say("top entry written, "+tscore.text());
 
 	root := ref Root(venti->Rootversion, name, "vac", tscore, blocksize, nil);
 	rd := root.pack();
@@ -160,7 +158,6 @@ init(nil: ref Draw->Context, args: list of string)
 	(rok, rscore) := session.write(venti->Roottype, rd);
 	if(rok < 0)
 		fail(sprint("writing root score: %r"));
-	say("root written, "+rscore.text());
 	sys->print("vac:%s\n", rscore.text());
 	if(session.sync() < 0)
 		fail(sprint("syncing server: %r"));
@@ -196,29 +193,24 @@ writepath(path: string, s: ref Sink, ms: ref MSink)
 {
 	if(!usepath(path))
 		return;
+
 	if(vflag && bout.puts(path+"\n") == bufio->ERROR)
 		fail(sprint("write stdout: %r"));
-say("writepath "+path);
+
 	fd := sys->open(path, sys->OREAD);
 	if(fd == nil)
 		fail(sprint("opening %s: %r", path));
 	(ok, dir) := sys->fstat(fd);
 	if(ok < 0)
 		fail(sprint("fstat %s: %r", path));
-say("writepath: file opened");
-	if(dir.mode&sys->DMAUTH) {
-		warn(path+": is auth file, skipping");
-		return;
-	}
-	if(dir.mode&sys->DMTMP) {
-		warn(path+": is temporary file, skipping");
-		return;
-	}
+	if(dir.mode&sys->DMAUTH)
+		return warn(path+": is auth file, skipping");
+	if(dir.mode&sys->DMTMP)
+		return warn(path+": is temporary file, skipping");
 
 	e, me: ref Entry;
 	de: ref Direntry;
 	if(dir.mode & sys->DMDIR) {
-say("writepath: file is dir");
 		ns := Sink.new(session, blocksize);
 		nms := MSink.new(session, blocksize);
 		for(;;) {
@@ -240,12 +232,10 @@ say("writepath: file is dir");
 		if(me == nil)
 			fail(sprint("error flushing metasink for %s: %r", path));
 	} else {
-say("writepath: file is normale file");
 		e = writefile(path, fd);
 		if(e == nil)
 			fail(sprint("error flushing filesink for %s: %r", path));
 	}
-say("writepath: wrote path, "+e.score.text());
 
 	case dir.name {
 	"/" =>	dir.name = "root";
@@ -256,7 +246,6 @@ say("writepath: wrote path, "+e.score.text());
 		de.uid = uid;
 	if(gid != nil)
 		de.gid = gid;
-say("writepath: have direntry");
 
 	i := s.add(e);
 	if(i < 0)
@@ -271,7 +260,6 @@ say("writepath: have direntry");
 	i = ms.add(de);
 	if(i < 0)
 		fail(sprint("adding direntry to msink: %r"));
-say("writepath done");
 }
 
 writefile(path: string, fd: ref Sys->FD): ref Entry
@@ -279,7 +267,6 @@ writefile(path: string, fd: ref Sys->FD): ref Entry
 	bio := bufio->fopen(fd, bufio->OREAD);
 	if(bio == nil)
 		fail(sprint("bufio opening %s: %r", path));
-	say(sprint("bufio opened path %s", path));
 
 	f := File.new(session, venti->Datatype, blocksize);
 	for(;;) {
@@ -294,7 +281,6 @@ writefile(path: string, fd: ref Sys->FD): ref Entry
 				fail(sprint("reading %s: %r", path));
 			n += have;
 		}
-		say(sprint("have buf, length %d", n));
 
 		if(f.write(buf[:n]) < 0)
 			fail(sprint("writing %s: %r", path));
