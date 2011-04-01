@@ -49,4 +49,5 @@ menu Games			'Bounce'			{wmrun wm/bounce}
 #menu Games			'Game client'		{wmrun games/gameclient >/dev/null >[2=1]}
 #menu Games			'Game client (local)'	{wmrun games/gameclient -l > /dev/null >[2=1]}
 
+if {! ~ $#vacscore 0 && ftest -f /lib/vacwmsetup} {run /lib/vacwmsetup} {}
 if {ftest -f $home/lib/wmsetup} {run $home/lib/wmsetup} {}

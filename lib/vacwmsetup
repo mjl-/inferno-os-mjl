@@ -1,0 +1,63 @@
+if {! ~ $#vacusrhost 0 && ! ~ $vacusrhost 0} {
+	if {~ $#emuhome 0} {
+		echo 'no $emuhome, cannot find hosts usr directory'
+	} {
+		bind -c $emuhome/.. /usr
+		if {ftest -f $home/lib/vacwmsetup} {run $home/lib/vacwmsetup}
+	}
+}
+
+ndb/cs
+memfs
+mount {mntgen} /n
+mount {mntgen} /mnt
+auth/factotum
+auth/feedkey
+auth/sshkeys &
+
+{
+	bind -c '#U*' /n/local || bind -c '#U' /n/local
+	bind -c '#Uc:' /n/c
+	bind -c '#Ud:' /n/d
+} >[2]/dev/null
+
+if {! ~ $#vactimezone 0} { bind /locale/^$vactimezone /locale/timezone }
+
+if {~ $#vachome 0} {vachome=none}
+if {~ $vachome local}	{
+	if {~ $#emuhome 0} {echo 'no $emuhome, cannot find home'} {bind -c $emuhome /n/home}
+}
+if {~ $vachome sftp}	{
+	args:=()
+	if {! ~ $#vachomepath 0} { args=($vachomepath) }
+	mount -c {sftpfs $vachomeaddr $args} /n/home
+}
+if {~ $vachome asksftp}	{
+	vachomeaddr=`{wm/prompt -w 40 'sftp server for /n/home'}
+	if {! ~ $#vachomeaddr 0} {mount -c {sftpfs $vachomeaddr} /n/home}
+}
+if {~ $vachome 9pinf}	{
+	args:=(-k /tmp/key)
+	if {! ~ $#vachomekeyalg 0} {args=(-C $vachomekeyalg)}
+	# xxx should let wm/getauthinfo fill in /tmp/key
+	echo 'Write the key to /tmp/key' >>/chan/wmstderr
+	wm/getauthinfo
+	mount $args -c $vachomeaddr /n/homeroot && bind -c /n/homeroot/$vachomepath /n/home
+	rm /tmp/key
+}
+if {~ $vachome 9pfact}	{
+	mount -9 -c $vachomeaddr /n/homeroot && bind -c /n/homeroot/$vachomepath /n/home
+}
+
+if {~ $#vacnonotice 0} {
+	wm/sh -c 'p /NOTICE; sh'
+}
+
+menu '' ''
+menu Ventistream	{wmrun {venti/stream -v $vacproxy $vaclocalwrite $vacscore; echo 'venti/stream finished'} >>/chan/wmstderr &}
+
+menu 'Set home to'	'/n/home'	{wmrun {ls -ld /n/home >/dev/null && bind -c /n/home $home} }
+
+if {! ftest -e $home} {mount -a {mntgen} /usr}
+
+if {ftest -f /n/home/lib/vacwmsetup} {run /n/home/lib/vacwmsetup}
