@@ -615,7 +615,9 @@ Root.unpack(d: array of byte): ref Root
 	o += Scoresize;
 	r.blocksize = g16(d, o);
 	o += BIT16SZ;
-	r.prev = ref gscore(d, o);
+	prev := gscore(d, o);
+	if(!prev.eq(Score(array[Scoresize] of {* => byte 0})))
+		r.prev = ref prev;
 	return r;
 }
 
