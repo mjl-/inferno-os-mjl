@@ -19,10 +19,10 @@ include "tables.m";
 	Strhash: import tables;
 include "venti.m";
 	venti: Venti;
-	Score, Session: import venti;
+	Root, Entry, Score, Session: import venti;
 include "vac.m";
 	vac: Vac;
-	Root, Entry, Direntry, Metablock, Metaentry, File, Sink, MSink: import vac;
+	Direntry, File, Sink, MSink: import vac;
 
 Vacput: module {
 	init:	fn(nil: ref Draw->Context, args: list of string);
@@ -153,7 +153,7 @@ init(nil: ref Draw->Context, args: list of string)
 		fail(sprint("writing top-level entries: %r"));
 	say("top entry written, "+tscore.text());
 
-	root := Root.new(name, "vac", tscore, blocksize, nil);
+	root := ref Root(venti->Rootversion, name, "vac", tscore, blocksize, nil);
 	rd := root.pack();
 	if(rd == nil)
 		fail(sprint("root pack: %r"));

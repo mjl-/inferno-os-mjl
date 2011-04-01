@@ -14,10 +14,10 @@ include "string.m";
 	str: String;
 include "venti.m";
 	venti: Venti;
-	Score, Session: import venti;
+	Root, Entry, Score, Session: import venti;
 include "vac.m";
 	vac: Vac;
-	Root, Entry, Direntry, Metablock, Metaentry, Vacdir, Vacfile, Source: import vac;
+	Direntry, Vacdir, Vacfile: import vac;
 
 Vacget: module {
 	init:	fn(nil: ref Draw->Context, args: list of string);

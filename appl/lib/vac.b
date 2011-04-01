@@ -5,8 +5,8 @@ include "sys.m";
 	sprint: import sys;
 include "venti.m";
 	venti: Venti;
-	Roottype, Dirtype, Pointertype0, Datatype: import venti;
-	Score, Session, Scoresize: import venti;
+	Entrysize, Scoresize, Roottype, Dirtype, Pointertype0, Datatype: import venti;
+	Root, Entry, Score, Session: import venti;
 include "vac.m";
 
 
@@ -74,119 +74,6 @@ gtstring(a: array of byte, o: int, n: int): string
 	return string a[o:i];
 }
 
-
-Root.new(name, rtype: string, score: Score, blocksize: int, prev: ref Score): ref Root
-{
-	return ref Root(Rootversion, name, rtype, score, blocksize, prev);
-}
-
-Root.pack(r: self ref Root): array of byte
-{
-	d := array[Rootsize] of byte;
-	i := 0;
-	i = p16(d, i, r.version);
-	i = ptstring(d, i, r.name, Rootnamelen);
-	if(i < 0)
-		return nil;
-	i = ptstring(d, i, r.rtype, Rootnamelen);
-	if(i < 0)
-		return nil;
-	i = pscore(d, i, r.score);
-	i = p16(d, i, r.blocksize);
-	if(r.prev == nil) {
-		for(j := 0; j < Scoresize; j++)
-			d[i+j] = byte 0;
-		i += Scoresize;
-	} else 
-		i = pscore(d, i, *r.prev);
-	if(i != len d) {
-		sys->werrstr("root pack, bad length: "+string i);
-		return nil;
-	}
-	return d;
-}
-
-Root.unpack(d: array of byte): ref Root
-{
-	if(len d != Rootsize){
-		sys->werrstr("root entry is wrong length");
-		return nil;
-	}
-	r := ref blankroot;
-	r.version = g16(d, 0);
-	if(r.version != Rootversion){
-		sys->werrstr("unknown root version");
-		return nil;
-	}
-	o := BIT16SZ;
-	r.name = gtstring(d, o, Rootnamelen);
-	o += Rootnamelen;
-	r.rtype = gtstring(d, o, Rootnamelen);
-	o += Rootnamelen;
-	r.score = gscore(d, o);
-	o += Scoresize;
-	r.blocksize = g16(d, o);
-	o += BIT16SZ;
-	r.prev = ref gscore(d, o);
-	return r;
-}
-
-Entry.new(psize, dsize, flags: int, size: big, score: Venti->Score): ref Entry
-{
-	return ref Entry(0, psize, dsize, (flags&Entrydepthmask)>>Entrydepthshift, flags, size, score);
-}
-
-Entry.pack(e: self ref Entry): array of byte
-{
-	d := array[Entrysize] of byte;
-	i := 0;
-	i = p32(d, i, e.gen);
-	i = p16(d, i, e.psize);
-	i = p16(d, i, e.dsize);
-	e.flags |= e.depth<<Entrydepthshift;
-	d[i++] = byte e.flags;
-	for(j := 0; j < 5; j++)
-		d[i++] = byte 0;
-	i = p48(d, i, e.size);
-	i = pscore(d, i, e.score);
-	if(i != len d) {
-		sys->werrstr(sprint("bad length, have %d, want %d", i, len d));
-		return nil;
-	}
-	return d;
-}
-
-Entry.unpack(d: array of byte): ref Entry
-{
-	if(len d != Entrysize){
-		sys->werrstr("entry is wrong length");
-		return nil;
-	}
-	e := ref blankentry;
-	i := 0;
-	e.gen = g32(d, i);
-	i += BIT32SZ;
-	e.psize = g16(d, i);
-	i += BIT16SZ;
-	e.dsize = g16(d, i);
-	i += BIT16SZ;
-	e.flags = int d[i];
-	e.depth = (e.flags & Entrydepthmask) >> Entrydepthshift;
-	e.flags &= ~Entrydepthmask;
-	i += BIT8SZ;
-	i += 5;			# skip something...
-	e.size = g48(d, i);
-	i += BIT48SZ;
-	e.score = gscore(d, i);
-	i += Scoresize;
-	if((e.flags & Entryactive) == 0)
-		return e;
-	if(!checksize(e.psize) || !checksize(e.dsize)){
-		sys->werrstr(sys->sprint("bad blocksize (%d or %d)", e.psize, e.dsize));
-		return nil;
-	}
-	return e;
-}
 
 Direntry.new(): ref Direntry
 {
@@ -434,14 +321,14 @@ fflush(f: ref File, last: int): (int, ref Entry)
 		if(!last && !f.p[i].full())
 			return (0, nil);
 		if(last && f.p[i].o == Scoresize) {
-			flags := Entryactive;
+			flags := venti->Entryactive;
 			if(f.dtype == Dirtype)
-				flags |= Entrydir;
-			flags |= i<<Entrydepthshift;
+				flags |= venti->Entrydir;
+			flags |= i<<venti->Entrydepthshift;
 			score := Score(f.p[i].data());
 			if(len score.a == 0)
 				score = Score.zero();
-			return (0, Entry.new(len f.p[i].d, f.dsize, flags, f.size, score));
+			return (0, ref Entry(0, len f.p[i].d, f.dsize, i, flags, f.size, score));
 		}
 		(ok, score) := f.s.write(Pointertype0+i, f.p[i].data());
 		if(ok < 0)
@@ -620,7 +507,7 @@ MSink.finish(m: self ref MSink): ref Entry
 Source.new(s: ref Session, e: ref Entry): ref Source
 {
 	dsize := e.dsize;
-	if(e.flags&Entrydir)
+	if(e.flags&venti->Entrydir)
 		dsize = Entrysize*(dsize/Entrysize);
 	return ref Source(s, e, dsize);
 }
@@ -659,7 +546,7 @@ Source.get(s: self ref Source, i: big, d: array of byte): int
 		dtype := Pointertype0+depth-1;
 		if(depth == 0) {
 			dtype = Datatype;
-			if(s.e.flags & Entrydir)
+			if(s.e.flags & venti->Entrydir)
 				dtype = Dirtype;
 			bsize = want;
 		}
@@ -816,12 +703,12 @@ if(dflag) say(sprint("vfreadentry: reading entry=%d", entry));
 		return nil;
 	}
 	e := Entry.unpack(ebuf);
-	if(~e.flags&Entryactive) {
+	if(~e.flags&venti->Entryactive) {
 		sys->werrstr("entry not active");
 		return nil;
 	}
 	# p9p writes archives with Entrylocal set?
-	if(0 && e.flags&Entrylocal) {
+	if(0 && e.flags&venti->Entrylocal) {
 		sys->werrstr("entry is local");
 		return nil;
 	}
@@ -836,7 +723,7 @@ if(dflag) say(sprint("vacdir.open: opening entry=%d", de.entry));
 	if(e == nil)
 		return (nil, nil);
 	isdir1 := de.mode & Modedir;
-	isdir2 := e.flags & Entrydir;
+	isdir2 := e.flags & venti->Entrydir;
 	if(isdir1 && !isdir2 || !isdir1 && isdir2) {
 		sys->werrstr("direntry directory bit does not match entry directory bit");
 		return (nil, nil);
@@ -917,7 +804,7 @@ Vacdir.rewind(vd: self ref Vacdir)
 
 vdroot(session: ref Session, score: Venti->Score): (ref Vacdir, ref Direntry, string)
 {
-	d := session.read(score, Roottype, Rootsize);
+	d := session.read(score, venti->Roottype, venti->Rootsize);
 	if(d == nil)
 		return (nil, nil, sprint("reading vac score: %r"));
 	r := Root.unpack(d);

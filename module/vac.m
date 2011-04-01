@@ -4,9 +4,6 @@ Vac: module {
 
 	dflag:	int;
 
-	# taken from venti.m, merge back later
-	# some of this needs to be removed from venti.m since it does not belong there
-
 	# mode bits
 	Modeperm: con 8r777;
 	Modesticky,
@@ -24,45 +21,10 @@ Vac: module {
 	Modedev,
 	Modenamedpipe: con 1<<(9+iota);
 
-	Entrysize:	con 40;
-	Rootsize:	con 300;
 	Metablocksize:	con 12;
 	Metaentrysize:	con 4;
 
 	Dsize:	con 8*1024;
-
-	Entryactive:	con (1<<0);	# entry is in use
-	Entrydir:	con (1<<1);	# a directory
-	Entrydepthshift:	con 2;	# shift for pointer depth
-	Entrydepthmask:	con (16r7<<2);	# mask for pointer depth
-	Entrylocal:	con (1<<5);	# used for local storage: should not be set for venti blocks
-
-	Root: adt {
-		version:	int;
-		name:	string;
-		rtype:	string;
-		score:	Venti->Score;		# to a Dir block
-		blocksize:	int;				# maximum block size
-		prev:		ref Venti->Score;		# last root block
-
-		new:	fn(name, rtype: string, score: Venti->Score, blocksize: int, prev: ref Venti->Score): ref Root;
-		unpack:	fn(d: array of byte): ref Root;
-		pack:	fn(r: self ref Root): array of byte;
-	};
-
-	Entry: adt {
-		gen:		int;		# generation number (XXX should be unsigned)
-		psize:	int;		# pointer block size
-		dsize:	int;		# data block size
-		depth:	int;		# unpacked from flags
-		flags:	int;
-		size:		big;		# (XXX should be unsigned)
-		score:	Venti->Score;
-
-		new:	fn(psize, dsize, flags: int, size: big, score: Venti->Score): ref Entry;
-		pack:	fn(e: self ref Entry): array of byte;
-		unpack:	fn(d: array of byte): ref Entry;
-	};
 
 	Direntry: adt {
 		version:	int;
@@ -115,7 +77,7 @@ Vac: module {
 
 		new:	fn(s: ref Venti->Session, dtype, dsize: int): ref File;
 		write:	fn(f: self ref File, d: array of byte): int;
-		finish:	fn(f: self ref File): ref Entry;
+		finish:	fn(f: self ref File): ref Venti->Entry;
 	};
 
 	# for writing venti directories
@@ -125,8 +87,8 @@ Vac: module {
 		nd, ne:	int;
 
 		new:	fn(s: ref Venti->Session, dsize: int): ref Sink;
-		add:	fn(m: self ref Sink, e: ref Entry): int;
-		finish:	fn(m: self ref Sink): ref Entry;
+		add:	fn(m: self ref Sink, e: ref Venti->Entry): int;
+		finish:	fn(m: self ref Sink): ref Venti->Entry;
 	};
 
 	Mentry: adt {
@@ -145,16 +107,16 @@ Vac: module {
 
 		new:	fn(s: ref Venti->Session, dsize: int): ref MSink;
 		add:	fn(m: self ref MSink, de: ref Direntry): int;
-		finish:	fn(m: self ref MSink): ref Entry;
+		finish:	fn(m: self ref MSink): ref Venti->Entry;
 	};
 
 	# for reading pages from a hash tree referenced by an entry
 	Source: adt {
 		session:	ref Venti->Session;
-		e:	ref Entry;
+		e:	ref Venti->Entry;
 		dsize:	int;  # real dsize
 
-		new:	fn(s: ref Venti->Session, e: ref Entry): ref Source;
+		new:	fn(s: ref Venti->Session, e: ref Venti->Entry): ref Source;
 		get:	fn(s: self ref Source, i: big, d: array of byte): int;
 	};
 
@@ -164,7 +126,7 @@ Vac: module {
 		o:	big;
 
 		mk:	fn(s: ref Source): ref Vacfile;
-		new:	fn(session: ref Venti->Session, e: ref Entry): ref Vacfile;
+		new:	fn(session: ref Venti->Session, e: ref Venti->Entry): ref Vacfile;
 		read:	fn(v: self ref Vacfile, d: array of byte, n: int): int;
 		seek:	fn(v: self ref Vacfile, offset: big): big;
 		pread:	fn(v: self ref Vacfile, d: array of byte, n: int, offset: big): int;
@@ -178,9 +140,9 @@ Vac: module {
 		i:	int;
 
 		mk:	fn(vf: ref Vacfile, ms: ref Source): ref Vacdir;
-		new:	fn(session: ref Venti->Session, e, me: ref Entry): ref Vacdir;
+		new:	fn(session: ref Venti->Session, e, me: ref Venti->Entry): ref Vacdir;
 		walk:	fn(v: self ref Vacdir, elem: string): ref Direntry;
-		open:	fn(v: self ref Vacdir, de: ref Direntry): (ref Entry, ref Entry);
+		open:	fn(v: self ref Vacdir, de: ref Direntry): (ref Venti->Entry, ref Venti->Entry);
 		readdir:	fn(v: self ref Vacdir): (int, ref Direntry);
 		rewind:		fn(v: self ref Vacdir);
 	};
