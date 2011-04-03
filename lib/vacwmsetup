@@ -21,6 +21,8 @@ auth/sshkeys &
 	bind -c '#Ud:' /n/d
 } >[2]/dev/null
 
+if {~ $vacsecstore 1} {wm/secstore $vacsecstoreopts >>/mnt/factotum/ctl}
+
 if {! ~ $#vactimezone 0} { bind /locale/^$vactimezone /locale/timezone }
 
 if {~ $#vachome 0} {vachome=none}
