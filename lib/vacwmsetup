@@ -36,7 +36,14 @@ if {~ $vachome sftp}	{
 }
 if {~ $vachome asksftp}	{
 	vachomeaddr=`{wm/prompt -w 40 'sftp server for /n/home'}
-	if {! ~ $#vachomeaddr 0} {mount -c {sftpfs $vachomeaddr} /n/home}
+	if {! ~ $#vachomeaddr 0} {
+		args:=($vachomeaddr)
+		# prevent asking for ssh-rsa & ssh-dsa, user probably did not insert enter keys yet
+		if {! ~ $vacsecstore 1} {args=(-s 'ssh -A password -s '^$vachomeaddr^' sftp')}
+
+		if {! ~ $#vachomepath 0} { args=($args $vachomepath) }
+		mount -c {sftpfs $args} /n/home
+	}
 }
 if {~ $vachome 9pinf}	{
 	args:=(-k /tmp/key)
