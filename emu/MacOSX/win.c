@@ -587,6 +587,10 @@ flushmemscreen(Rectangle r)
 uchar*
 attachscreen(Rectangle *r, ulong *chan, int *depth, int *width, int *softscreen)
 {	
+	if(Xsize == 0 && Ysize == 0) {
+		Xsize = 640;
+		Ysize = 480;
+	}
 	if(!triedscreen) {
 		triedscreen = 1;
 		screeninit();	/* TO DO: call this elsewhere? */

@@ -161,6 +161,11 @@ attachscreen(IRectangle *r, ulong *chan, int *d, int *width, int *softscreen)
 {
 	int k;
 
+	if(Xsize == 0 && Ysize == 0) {
+		Xsize = 640;
+		Ysize = 480;
+	}
+
 	if (!attached) {
 		newiop();
 		IOP.op = Iattachscr;

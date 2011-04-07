@@ -169,7 +169,14 @@ attachscreen(Rectangle *r, ulong *chan, int *d, int *width, int *softscreen)
 	if(attached)
 		goto Return;
 
-	/* Compute bodersizes */
+	if(Xsize == 0 && Ysize == 0) {
+		if(!SystemParametersInfo(SPI_GETWORKAREA, 0, &bs, 0))
+			panic("get work area");
+		Xsize = bs.right - bs.left - 40;
+		Ysize = bs.bottom - bs.top - 40;
+	}
+
+	/* Compute bordersizes */
 	memset(&bs, 0, sizeof(bs));
 	AdjustWindowRect(&bs, WS_OVERLAPPEDWINDOW, 0);
 	bsw = bs.right - bs.left;

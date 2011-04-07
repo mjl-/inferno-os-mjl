@@ -95,6 +95,11 @@ attachscreen(IRectangle *r, int *ld, int *width, int *softscreen)
 {
 	extern ulong* makememones();
 
+	if(Xsize == 0 && Ysize == 0) {
+		Xsize = 640;
+		Ysize = 480;
+	}
+
 	r->min.x = 0;
 	r->min.y = 0;
 	r->max.x = Xsize;

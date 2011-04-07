@@ -71,6 +71,11 @@ attachscreen(Rectangle *r, ulong *chan, int *d, int *width, int *softscreen)
 	int fd;
 	char *p, buf[128], info[NINFO+1];
 
+	if(Xsize == 0 && Ysize == 0) {
+		Xsize = 640;
+		Ysize = 480;
+	}
+
 	if(usenewwin){
 		p = getenv("wsys");
 		if(p == nil)

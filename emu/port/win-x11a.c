@@ -99,7 +99,7 @@ static void		xkbdproc(void*);
 static void		xdestroy(XEvent*);
 static void		xselect(XEvent*, XDisplay*);
 static void		xproc(void*);
-static void		xinitscreen(int, int, ulong, ulong*, int*);
+static void		xinitscreen(ulong, ulong*, int*);
 static void		initxcmap(XWindow);
 static XGC		creategc(XDrawable);
 static void		graphicsgmap(XColor*, int);
@@ -232,13 +232,8 @@ attachscreen(Rectangle *r, ulong *chan, int *d, int *width, int *softscreen)
 
 	Xsize &= ~0x3;	/* ensure multiple of 4 */
 
-	r->min.x = 0;
-	r->min.y = 0;
-	r->max.x = Xsize;
-	r->max.y = Ysize;
-
 	if(!triedscreen){
-		xinitscreen(Xsize, Ysize, displaychan, chan, d);
+		xinitscreen(displaychan, chan, d);
 		/*
 		 * moved xproc from here to end since it could cause an expose event and
 		 * hence a flushmemscreen before xscreendata is initialized
@@ -248,6 +243,11 @@ attachscreen(Rectangle *r, ulong *chan, int *d, int *width, int *softscreen)
 		*chan = displaychan;
 		*d = displaydepth;
 	}
+
+	r->min.x = 0;
+	r->min.y = 0;
+	r->max.x = Xsize;
+	r->max.y = Ysize;
 
 	*width = (Xsize/4)*(*d/8);
 	*softscreen = 1;
@@ -804,7 +804,7 @@ xmapvisual(int screenno, XVisualInfo *vi, ulong *chan)
 }
 
 static void
-xinitscreen(int xsize, int ysize, ulong reqchan, ulong *chan, int *d)
+xinitscreen(ulong reqchan, ulong *chan, int *d)
 {
 	char *argv[2];
 	char *dispname;
@@ -877,12 +877,17 @@ xinitscreen(int xsize, int ysize, ulong reqchan, ulong *chan, int *d)
 		initxcmap(rootwin);
 	}
 
+	if(Xsize == 0 && Xsize == 0) {
+		Xsize = screen->width-80;
+		Ysize = screen->height-80;
+	}
+
 	memset(&attrs, 0, sizeof(attrs));
 	attrs.colormap = xcmap;
 	attrs.background_pixel = 0;
 	attrs.border_pixel = 0;
 	/* attrs.override_redirect = 1;*/ /* WM leave me alone! |CWOverrideRedirect */
-	xdrawable = XCreateWindow(xdisplay, rootwin, 0, 0, xsize, ysize, 0, xscreendepth, 
+	xdrawable = XCreateWindow(xdisplay, rootwin, 0, 0, Xsize, Ysize, 0, xscreendepth, 
 				  InputOutput, xvis, CWBackPixel|CWBorderPixel|CWColormap, &attrs);
 
 	/*
@@ -896,8 +901,8 @@ xinitscreen(int xsize, int ysize, ulong reqchan, ulong *chan, int *d)
 
 	memset(&normalhints, 0, sizeof(normalhints));
 	normalhints.flags = USSize|PMaxSize;
-	normalhints.max_width = normalhints.width = xsize;
-	normalhints.max_height = normalhints.height = ysize;
+	normalhints.max_width = normalhints.width = Xsize;
+	normalhints.max_height = normalhints.height = Ysize;
 	hints.flags = InputHint|StateHint;
 	hints.input = 1;
 	hints.initial_state = NormalState;
