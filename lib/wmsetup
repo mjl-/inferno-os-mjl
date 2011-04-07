@@ -6,6 +6,8 @@ fn % {$*}
 autoload=std
 home=/usr/^"{cat /dev/user}
 
+if {~ $vacdebug 1} {wm/sh}
+
 if {! {~ wm ${loaded}}} {
 	echo wmsetup must run under wm >[1=2]
 	raise usage
