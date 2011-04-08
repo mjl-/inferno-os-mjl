@@ -894,12 +894,12 @@ g32(f: array of byte, i: int): int
 
 g48(f: array of byte, i: int): big
 {
-	return big g32(f, i)<<16 | big g16(f, i+4);
+	return big g16(f, i)<<32 | (big g32(f, i+2) & 16rFFFFFFFF);
 }
 
 g64(f: array of byte, i: int): big
 {
-	return big g32(f, i)<<32 | big g32(f, i+4);
+	return big g32(f, i)<<32 | (big g32(f, i+4) & 16rFFFFFFFF);
 }
 
 p16(d: array of byte, i: int, v: int): int
